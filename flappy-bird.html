@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Flappy Bird - Thử Thách Màn Chơi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-top: #0e1e2f;
+  --bg-bot: #192a3e;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --accent: #f59e0b;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg-top: #e0f2fe;
+    --bg-bot: #bae6fd;
+    --card-bg: rgba(255, 255, 255, 0.95);
+  }
+}
+* { box-sizing: inherit; }
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+body {
+  background: radial-gradient(circle at 50% 20%, var(--bg-top), var(--bg-bot));
+  color: #fff;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.game-container {
+  position: relative;
+  height: min(84vh, 620px);
+  aspect-ratio: 360 / 560;
+  max-width: 96vw;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+canvas:focus-visible, .sound-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.sound-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(15, 26, 38, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.15s ease, background 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.sound-btn:hover {
+  transform: scale(1.08);
+  background: rgba(15, 26, 38, 0.7);
+}
+.sound-btn:active {
+  transform: scale(0.95);
+}
+.sound-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hint {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kbd {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<div class="game-container">
+  <button id="soundBtn" class="sound-btn" aria-label="Bật/Tắt âm thanh" title="Bật/Tắt âm thanh (Phím M)">
+    <svg id="iconOn" viewBox="0 0 24 24">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </svg>
+    <svg id="iconOff" viewBox="0 0 24 24" style="display:none;">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <line x1="23" y1="9" x2="17" y2="15"></line>
+      <line x1="17" y1="9" x2="23" y2="15"></line>
+    </svg>
+  </button>
+  <canvas id="c" width="360" height="560" tabindex="0" aria-label="Flappy Bird"></canvas>
+</div>
+
+<p class="hint">
+  <span class="kbd">Space</span> / <span class="kbd">↑</span> / <span class="kbd">Click</span> để bay
+  • <span class="kbd">M</span> Âm thanh
+</p>
+
+<script>
+(function() {
+'use strict';
+
+// ==========================================
+// 1. HỆ THỐNG ÂM THANH (Web Audio API)
+// ==========================================
+const sound = {
+  ctx: null,
+  muted: false,
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  },
+  toggle() {
+    this.init();
+    this.muted = !this.muted;
+    try { localStorage.setItem('flappy-muted', this.muted); } catch(e){}
+    this.updateIcon();
+    return this.muted;
+  },
+  updateIcon() {
+    const on = document.getElementById('iconOn');
+    const off = document.getElementById('iconOff');
+    if (on && off) {
+      on.style.display = this.muted ? 'none' : 'block';
+      off.style.display = this.muted ? 'block' : 'none';
+    }
+  },
+  playFlap() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(720, now + 0.11);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.13);
+  },
+  playScore() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [1046.5, 1567.98];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      const st = now + idx * 0.08;
+      osc.frequency.setValueAtTime(freq, st);
+      gain.gain.setValueAtTime(0.2, st);
+      gain.gain.exponentialRampToValueAtTime(0.001, st + 0.22);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(st);
+      osc.stop(st + 0.23);
+    });
+  },
+  playHit() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.16);
+    gain.gain.setValueAtTime(0.38, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.17);
+  },
+  playDie() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.35);
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.36);
+  },
+  playRecord() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      const st = now + idx * 0.09;
+      osc.frequency.setValueAtTime(freq, st);
+      gain.gain.setValueAtTime(0.2, st);
+      gain.gain.exponentialRampToValueAtTime(0.001, st + 0.28);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(st);
+      osc.stop(st + 0.29);
+    });
+  }
+};
+
+try { sound.muted = localStorage.getItem('flappy-muted') === 'true'; } catch(e){}
+sound.updateIcon();
+
+// ==========================================
+// 2. CẤU HÌNH & THÔNG SỐ GAME
+// ==========================================
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = 360, H = 560, GH = 72, GY = H - GH;
+const GRAV = 0.42, FLAP = -7.2, BASE_SPEED = 2.4, GAP = 146, PW = 56, SPACE = 190, BR = 13, BX = 90;
+
+let state = 'ready'; // 'ready' | 'play' | 'dead'
+let bird, pipes, score = 0, best = 0;
+let groundX = 0, tick = 0, flash = 0, last = 0;
+let isNewBest = false;
+let shake = 0;
+
+// Thông báo cột mốc màn chơi (Milestone banner)
+let milestoneText = '';
+let milestoneTimer = 0;
+
+let clouds = [];
+try { best = +localStorage.getItem('flappy-best') || 0; } catch(e){}
+
+// Khởi tạo các đám mây cảnh nền
+for (let i = 0; i < 5; i++) {
+  clouds.push({
+    x: Math.random() * W * 1.5,
+    y: 35 + Math.random() * 110,
+    speed: 0.25 + Math.random() * 0.35,
+    scale: 0.7 + Math.random() * 0.5,
+    alpha: 0.45 + Math.random() * 0.3
+  });
+}
+
+// Hàm tính tốc độ cuộn theo điểm số (Màn 10 trở đi tăng dần)
+function getSpeed() {
+  if (score < 10) return BASE_SPEED;
+  // Từ điểm 10 trở đi, tốc độ tăng dần từ từ theo điểm
+  return Math.min(4.3, BASE_SPEED + (score - 9) * 0.08);
+}
+
+// Hàm xác định màn chơi hiện tại
+function getLevel() {
+  if (score < 10) return 1;
+  if (score < 20) return 2;
+  return 3;
+}
+
+function reset() {
+  bird = {
+    y: H / 2 - 40,
+    v: 0,
+    rot: 0,
+    targetRot: 0,
+    wingAngle: 0,
+    blinkTimer: 120,
+    isBlinking: false
+  };
+  pipes = [];
+  score = 0;
+  flash = 0;
+  shake = 0;
+  isNewBest = false;
+  milestoneText = '';
+  milestoneTimer = 0;
+
+  for (let i = 0; i < 3; i++) {
+    addPipe(W + 70 + i * SPACE);
+  }
+}
+
+function addPipe(x) {
+  const minTop = 60;
+  const maxTop = GY - GAP - 80;
+  const baseTop = minTop + Math.random() * (maxTop - minTop);
+  pipes.push({
+    x,
+    baseTop,
+    top: baseTop,
+    passed: false,
+    phase: Math.random() * Math.PI * 2,
+    moveSpeed: 0.038 + Math.random() * 0.016, // Tốc độ trồi sụt
+    moveAmp: 34 + Math.random() * 12          // Biên độ trồi sụt
+  });
+}
+
+// ==========================================
+// 3. VỖ CÁNH & CHẾT
+// ==========================================
+function flap() {
+  sound.init();
+
+  if (state === 'ready') {
+    state = 'play';
+  }
+
+  if (state === 'play') {
+    bird.v = FLAP;
+    bird.wingAngle = -0.65;
+    sound.playFlap();
+  } else if (state === 'dead' && flash <= 0 && tick > 25) {
+    reset();
+    state = 'ready';
+  }
+}
+
+function die() {
+  if (state !== 'play') return;
+  state = 'dead';
+  flash = 0.8;
+  shake = 8;
+  tick = 0;
+
+  sound.playHit();
+  setTimeout(() => { sound.playDie(); }, 100);
+
+  if (score > best) {
+    best = score;
+    isNewBest = true;
+    try { localStorage.setItem('flappy-best', best); } catch(e){}
+    setTimeout(() => { sound.playRecord(); }, 300);
+  }
+}
+
+// ==========================================
+// 4. CẬP NHẬT LOGIC VẬT LÝ
+// ==========================================
+function update(dt) {
+  tick += dt;
+
+  if (shake > 0) shake = Math.max(0, shake - 0.7 * dt);
+  if (milestoneTimer > 0) milestoneTimer -= dt;
+
+  const currentSpeed = getSpeed();
+
+  // Cuộn mặt đất theo tốc độ hiện tại
+  if (state !== 'dead') {
+    groundX = (groundX - currentSpeed * dt) % 24;
+  }
+
+  // Cuộn mây nền
+  for (const c of clouds) {
+    c.x -= c.speed * dt;
+    if (c.x < -80) {
+      c.x = W + 50 + Math.random() * 40;
+      c.y = 35 + Math.random() * 110;
+    }
+  }
+
+  // Chớp mắt
+  bird.blinkTimer -= dt;
+  if (bird.blinkTimer <= 0) {
+    bird.isBlinking = true;
+    if (bird.blinkTimer <= -6) {
+      bird.isBlinking = false;
+      bird.blinkTimer = 140 + Math.random() * 160;
+    }
+  }
+
+  // Trạng thái chờ bắt đầu
+  if (state === 'ready') {
+    bird.y = H / 2 - 40 + Math.sin(tick * 0.08) * 8;
+    bird.rot = Math.sin(tick * 0.08) * 0.06;
+    bird.wingAngle = Math.sin(tick * 0.15) * 0.35;
+    return;
+  }
+
+  // Trọng lực rơi
+  bird.v += GRAV * dt;
+  bird.y += bird.v * dt;
+
+  // Tính góc nghiêng mỏ chim mượt mà
+  if (bird.v < 0) {
+    bird.targetRot = -0.42; // Nghiêng lên khi bay
+    bird.wingAngle = Math.sin(tick * 0.4) * 0.5;
+  } else {
+    // Chúi đầu xuống khi rơi
+    bird.targetRot = Math.min(1.25, (bird.v - 2) * 0.13);
+    bird.wingAngle = Math.sin(tick * 0.15) * 0.25;
+  }
+  bird.rot += (bird.targetRot - bird.rot) * 0.25 * dt;
+
+  if (state === 'play') {
+    // Cập nhật các ống chướng ngại vật
+    for (const p of pipes) {
+      p.x -= currentSpeed * dt;
+
+      // TỪ MÀN 20 TRỞ ĐI: CÁC ỐNG DI CHUYỂN LÊN VÀ XUỐNG
+      if (score >= 20) {
+        const offset = Math.sin(tick * p.moveSpeed + p.phase) * p.moveAmp;
+        p.top = Math.max(45, Math.min(GY - GAP - 45, p.baseTop + offset));
+      }
+
+      // Tính điểm khi vượt qua ống
+      if (!p.passed && p.x + PW < BX - BR) {
+        p.passed = true;
+        score++;
+        sound.playScore();
+
+        // Kích hoạt thông báo khi đạt các mốc màn chơi
+        if (score === 10) {
+          milestoneText = '⚡ MÀN 10: TỐC ĐỘ TĂNG DẦN!';
+          milestoneTimer = 110;
+        } else if (score === 20) {
+          milestoneText = '⚠️ MÀN 20: ỐNG DI CHUYỂN!';
+          milestoneTimer = 130;
+        }
+      }
+
+      // Kiểm tra va chạm ống trên / ống dưới
+      if (BX + BR - 4 > p.x && BX - BR + 4 < p.x + PW) {
+        if (bird.y - BR + 4 < p.top || bird.y + BR - 4 > p.top + GAP) {
+          die();
+        }
+      }
+    }
+
+    // Tái tạo ống mới khi ống cũ trôi khỏi màn hình
+    if (pipes.length > 0 && pipes[0].x + PW < 0) {
+      pipes.shift();
+      addPipe(pipes[pipes.length - 1].x + SPACE);
+    }
+
+    // Va chạm mặt đất & trần
+    if (bird.y + BR > GY) {
+      bird.y = GY - BR;
+      die();
+    }
+    if (bird.y - BR < 0) {
+      bird.y = BR;
+      bird.v = 0;
+    }
+  } else if (bird.y + BR > GY) {
+    bird.y = GY - BR;
+    bird.v = 0;
+  }
+
+  if (flash > 0) flash = Math.max(0, flash - 0.08 * dt);
+}
+
+// ==========================================
+// 5. RENDER ĐỒ HỌA
+// ==========================================
+function drawCloud(c) {
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.scale(c.scale, c.scale);
+  ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`;
+  ctx.beginPath();
+  ctx.arc(0, 0, 24, 0, Math.PI * 2);
+  ctx.arc(20, -10, 28, 0, Math.PI * 2);
+  ctx.arc(48, -4, 22, 0, Math.PI * 2);
+  ctx.arc(66, 6, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPipe(p) {
+  const x = p.x;
+  const top = p.top;
+  const b = top + GAP;
+  const isMovingPipe = score >= 20;
+
+  // Gradient thân ống
+  const g = ctx.createLinearGradient(x, 0, x + PW, 0);
+  if (isMovingPipe) {
+    // Ống di chuyển có viền phản quang cảnh báo nhẹ
+    g.addColorStop(0, '#439737');
+    g.addColorStop(0.3, '#74cb57');
+    g.addColorStop(0.7, '#409433');
+    g.addColorStop(1, '#27621f');
+  } else {
+    g.addColorStop(0, '#53a847');
+    g.addColorStop(0.3, '#79d15c');
+    g.addColorStop(0.7, '#489c3b');
+    g.addColorStop(1, '#2c6923');
+  }
+
+  ctx.fillStyle = g;
+  ctx.strokeStyle = '#1d4818';
+  ctx.lineWidth = 3;
+
+  // 1. Ống trên
+  ctx.fillRect(x, 0, PW, top);
+  ctx.strokeRect(x, -3, PW, top + 3);
+  ctx.fillRect(x - 5, top - 24, PW + 10, 24);
+  ctx.strokeRect(x - 5, top - 24, PW + 10, 24);
+
+  // Vệt sáng ống trên
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillRect(x + 6, 0, 6, top - 24);
+  ctx.fillRect(x + 1, top - 24, 6, 24);
+
+  // 2. Ống dưới
+  ctx.fillStyle = g;
+  ctx.fillRect(x, b, PW, GY - b);
+  ctx.strokeRect(x, b, PW, GY - b);
+  ctx.fillRect(x - 5, b, PW + 10, 24);
+  ctx.strokeRect(x - 5, b, PW + 10, 24);
+
+  // Vệt sáng ống dưới
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillRect(x + 6, b + 24, 6, GY - b - 24);
+  ctx.fillRect(x + 1, b, 6, 24);
+
+  // Mũi tên chỉ dẫn trồi sụt từ màn 20 trở đi
+  if (isMovingPipe) {
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '700 12px "Baloo 2", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('↕', x + PW / 2, top - 8);
+    ctx.fillText('↕', x + PW / 2, b + 16);
+  }
+}
+
+// Vẽ chú chim chuẩn mực, tự nhiên, không bị biến dạng co dãn
+function drawBird() {
+  ctx.save();
+  ctx.translate(BX, bird.y);
+  ctx.rotate(bird.rot);
+
+  // Đuôi chim
+  ctx.fillStyle = '#ea580c';
+  ctx.strokeStyle = '#7c2d12';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-BR - 2, -2);
+  ctx.lineTo(-BR - 12, -6);
+  ctx.lineTo(-BR - 8, 1);
+  ctx.lineTo(-BR - 12, 7);
+  ctx.lineTo(-BR - 2, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Thân chim tròn trĩnh tự nhiên
+  const bodyGrad = ctx.createRadialGradient(-3, -4, 2, 0, 0, BR + 6);
+  bodyGrad.addColorStop(0, '#ffe066');
+  bodyGrad.addColorStop(0.6, '#fbb01b');
+  bodyGrad.addColorStop(1, '#d97706');
+
+  ctx.fillStyle = bodyGrad;
+  ctx.strokeStyle = '#6b3602';
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, BR + 3, BR, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Bụng chim
+  ctx.fillStyle = '#fffbeb';
+  ctx.beginPath();
+  ctx.ellipse(2, 3, BR - 5, BR - 5, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cánh chim
+  ctx.save();
+  ctx.translate(-5, 2);
+  ctx.rotate(bird.wingAngle);
+
+  const wingGrad = ctx.createLinearGradient(-6, -6, 12, 10);
+  wingGrad.addColorStop(0, '#ffffff');
+  wingGrad.addColorStop(0.4, '#fde68a');
+  wingGrad.addColorStop(1, '#f59e0b');
+
+  ctx.fillStyle = wingGrad;
+  ctx.strokeStyle = '#78350f';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 9, 6, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // Mỏ chim
+  const beakGrad = ctx.createLinearGradient(BR, 0, BR + 11, 4);
+  beakGrad.addColorStop(0, '#fb923c');
+  beakGrad.addColorStop(1, '#ea580c');
+
+  ctx.fillStyle = beakGrad;
+  ctx.strokeStyle = '#7c2d12';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(BR, -2);
+  ctx.lineTo(BR + 11, 2);
+  ctx.lineTo(BR, 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Mắt chim
+  const eyeX = 7, eyeY = -5;
+  if (state === 'dead') {
+    // Mắt chữ X khi thua
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2.8;
+    ctx.beginPath();
+    ctx.moveTo(eyeX - 4, eyeY - 4); ctx.lineTo(eyeX + 4, eyeY + 4);
+    ctx.moveTo(eyeX + 4, eyeY - 4); ctx.lineTo(eyeX - 4, eyeY + 4);
+    ctx.stroke();
+  } else if (bird.isBlinking) {
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY + 1, 5, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, 5.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Con ngươi
+    const pupilOffX = bird.rot < 0 ? 1.5 : 1;
+    const pupilOffY = bird.v > 2 ? 1.5 : 0;
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(eyeX + pupilOffX, eyeY + pupilOffY, 2.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Đốm phản xạ sáng
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(eyeX + pupilOffX + 1, eyeY + pupilOffY - 1, 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function renderText(txt, x, y, size, color, strokeColor = '#1d2b3a') {
+  ctx.font = '800 ' + size + 'px "Baloo 2", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = Math.max(3, size / 5.5);
+  ctx.strokeStyle = strokeColor;
+  ctx.lineJoin = 'round';
+  ctx.strokeText(txt, x, y);
+  ctx.fillStyle = color || '#ffffff';
+  ctx.fillText(txt, x, y);
+}
+
+function draw() {
+  ctx.save();
+
+  if (shake > 0) {
+    const rx = (Math.random() - 0.5) * shake;
+    const ry = (Math.random() - 0.5) * shake;
+    ctx.translate(rx, ry);
+  }
+
+  // Nền trời
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, GY);
+  skyGrad.addColorStop(0, '#38bdf8');
+  skyGrad.addColorStop(0.65, '#7dd3fc');
+  skyGrad.addColorStop(1, '#e0f2fe');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Mặt trời
+  const sunGrad = ctx.createRadialGradient(290, 60, 4, 290, 60, 48);
+  sunGrad.addColorStop(0, 'rgba(255, 255, 230, 0.9)');
+  sunGrad.addColorStop(0.3, 'rgba(254, 240, 138, 0.5)');
+  sunGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath();
+  ctx.arc(290, 60, 48, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mây
+  for (const c of clouds) drawCloud(c);
+
+  // Đồi xa
+  ctx.fillStyle = '#a7f3d0';
+  ctx.beginPath();
+  ctx.moveTo(0, GY);
+  ctx.quadraticCurveTo(80, GY - 45, 170, GY - 20);
+  ctx.quadraticCurveTo(260, GY - 55, 360, GY - 25);
+  ctx.lineTo(W, GY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ống nước
+  for (const p of pipes) drawPipe(p);
+
+  // Mặt đất
+  ctx.fillStyle = '#e2c589';
+  ctx.fillRect(0, GY, W, GH);
+
+  // Dải cỏ
+  ctx.fillStyle = '#4ade80';
+  ctx.fillRect(0, GY, W, 15);
+  ctx.fillStyle = '#22c55e';
+  for (let x = groundX - 24; x < W + 24; x += 24) {
+    ctx.beginPath();
+    ctx.moveTo(x, GY);
+    ctx.lineTo(x + 12, GY + 15);
+    ctx.lineTo(x + 24, GY);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#b79753';
+  ctx.fillRect(0, GY + 15, W, 3);
+
+  // Chú chim
+  drawBird();
+
+  // Điểm số & Huy hiệu màn chơi
+  if (state === 'play') {
+    renderText(score, W / 2, 75, 52, '#ffffff');
+
+    // Huy hiệu màn nhỏ ở góc trên bên trái
+    const lvl = getLevel();
+    const lvlText = lvl === 1 ? 'Màn 1' : (lvl === 2 ? 'Màn 2 ⚡' : 'Màn 3 🌀');
+    const lvlColor = lvl === 1 ? '#38bdf8' : (lvl === 2 ? '#f59e0b' : '#ef4444');
+    
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+    ctx.beginPath();
+    ctx.roundRect(14, 14, 88, 28, 14);
+    ctx.fill();
+    ctx.font = '800 13px "Baloo 2", sans-serif';
+    ctx.fillStyle = lvlColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(lvlText, 58, 33);
+  }
+
+  // Thông báo cột mốc màn chơi (Milestone Banner)
+  if (milestoneTimer > 0 && state === 'play') {
+    const alpha = Math.min(1, milestoneTimer / 20);
+    ctx.save();
+    ctx.fillStyle = `rgba(15, 23, 42, ${0.85 * alpha})`;
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - 130, 105, 260, 36, 18);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(245, 158, 11, ${alpha})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font = '800 15px "Baloo 2", sans-serif';
+    ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+    ctx.textAlign = 'center';
+    ctx.fillText(milestoneText, W / 2, 129);
+    ctx.restore();
+  }
+
+  // Màn hình bắt đầu
+  if (state === 'ready') {
+    renderText('Flappy Bird', W / 2, 140, 46, '#ffd54a');
+    renderText('Chạm hoặc nhấn Space để bay', W / 2, GY - 45, 20, '#ffffff');
+
+    const arrowBounce = Math.sin(tick * 0.15) * 6;
+    ctx.fillStyle = '#ffd54a';
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 12, GY - 80 + arrowBounce);
+    ctx.lineTo(W / 2 + 12, GY - 80 + arrowBounce);
+    ctx.lineTo(W / 2, GY - 68 + arrowBounce);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Màn hình Game Over
+  if (state === 'dead') {
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+    ctx.fillRect(0, 0, W, H);
+
+    const cardX = 36, cardY = 175, cardW = W - 72, cardH = 195;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY + 6, cardW, cardH, 20);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    renderText('GAME OVER', W / 2, 145, 42, '#ef4444');
+
+    if (isNewBest && score > 0) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.roundRect(W / 2 - 65, cardY - 14, 130, 26, 13);
+      ctx.fill();
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.font = '800 13px "Baloo 2", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText('★ KỶ LỤC MỚI! ★', W / 2, cardY + 4);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '700 22px "Baloo 2", sans-serif';
+    ctx.fillText('Điểm: ' + score, W / 2, 235);
+
+    ctx.fillStyle = '#d97706';
+    ctx.font = '700 22px "Baloo 2", sans-serif';
+    ctx.fillText('Cao nhất: ' + best, W / 2, 275);
+
+    // Nút chơi lại
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - 80, 305, 160, 42, 14);
+    ctx.fill();
+    ctx.strokeStyle = '#065f46';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.font = '800 17px "Baloo 2", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Chơi lại', W / 2, 332);
+  }
+
+  // Chớp sáng va chạm
+  if (flash > 0) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${flash})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.restore();
+}
+
+function loop(t) {
+  const dt = Math.min(2.5, (t - last) / 16.667 || 1);
+  last = t;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Bàn phím
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (!e.repeat) flap();
+  } else if (e.code === 'KeyM') {
+    e.preventDefault();
+    sound.toggle();
+  }
+});
+
+// Cảm ứng / Chuột: Chạm bất kỳ đâu trên màn hình để bay (trừ nút âm thanh)
+window.addEventListener('pointerdown', e => {
+  if (e.target.closest('#soundBtn')) return;
+  e.preventDefault();
+  flap();
+}, { passive: false });
+
+// Nút âm thanh
+const soundBtn = document.getElementById('soundBtn');
+soundBtn.addEventListener('pointerdown', e => {
+  e.stopPropagation();
+});
+soundBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  sound.toggle();
+});
+
+reset();
+requestAnimationFrame(t => {
+  last = t;
+  loop(t);
+});
+
+})();
+</script>
+</body>
+</html>
