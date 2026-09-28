@@ -3,16 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Flappy Bird - Thử Thách Màn Chơi</title>
+<title>Flappy Bird - Đa Skin & Tối Ưu FPS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg-top: #0e1e2f;
-  --bg-bot: #192a3e;
-  --card-bg: rgba(255, 255, 255, 0.95);
+  --bg-top: #0a1523;
+  --bg-bot: #142233;
+  --panel-bg: rgba(15, 23, 42, 0.88);
   --accent: #f59e0b;
+  --accent-glow: rgba(245, 158, 11, 0.4);
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -21,7 +22,7 @@
   :root:not([data-theme="dark"]) {
     --bg-top: #e0f2fe;
     --bg-bot: #bae6fd;
-    --card-bg: rgba(255, 255, 255, 0.95);
+    --panel-bg: rgba(255, 255, 255, 0.92);
   }
 }
 * { box-sizing: inherit; }
@@ -40,7 +41,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
@@ -51,29 +52,47 @@ body {
   height: min(84vh, 620px);
   aspect-ratio: 360 / 560;
   max-width: 96vw;
+  will-change: transform;
+  transform: translateZ(0);
 }
 canvas {
   width: 100%;
   height: 100%;
   display: block;
   border-radius: 20px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
   cursor: pointer;
+  background-color: #38bdf8;
+  will-change: transform;
 }
-canvas:focus-visible, .sound-btn:focus-visible {
+canvas:focus-visible, .top-btn:focus-visible {
   outline: 3px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
-.sound-btn {
+
+/* Thanh nút điều khiển trên nóc game */
+.top-bar {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   z-index: 10;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(15, 26, 38, 0.45);
+  pointer-events: none;
+}
+.top-left, .top-right {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+.top-btn {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 19px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(15, 26, 38, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #fff;
@@ -81,28 +100,207 @@ canvas:focus-visible, .sound-btn:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  transition: transform 0.15s ease, background 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  gap: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
-.sound-btn:hover {
-  transform: scale(1.08);
-  background: rgba(15, 26, 38, 0.7);
+.top-btn:hover {
+  transform: scale(1.06);
+  background: rgba(15, 26, 38, 0.8);
+  border-color: rgba(255, 255, 255, 0.6);
 }
-.sound-btn:active {
+.top-btn:active {
   transform: scale(0.95);
 }
-.sound-btn svg {
-  width: 22px;
-  height: 22px;
+.btn-icon-only {
+  width: 38px;
+  padding: 0;
+  border-radius: 50%;
+}
+.top-btn svg {
+  width: 19px;
+  height: 19px;
   stroke: currentColor;
   stroke-width: 2.2;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* Live FPS Tag */
+.fps-tag {
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 8px;
+  color: #4ade80;
+  letter-spacing: 0.3px;
+}
+
+/* Modals (Cửa sổ Đổi Skin & Cài Đặt FPS) */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 18, 30, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  border-radius: 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: auto;
+}
+.modal-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+.modal-card {
+  width: 90%;
+  max-width: 320px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  padding: 18px;
+  color: #fff;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  transform: scale(0.92);
+  transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal-overlay.active .modal-card {
+  transform: scale(1);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffd54a;
+}
+.modal-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+.modal-close:hover { color: #fff; }
+
+/* Grid Skins */
+.skins-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.skin-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.skin-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+.skin-card.selected {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+}
+.skin-card canvas {
+  width: 60px;
+  height: 48px;
+  border-radius: 8px;
+  box-shadow: none;
+  background: transparent;
+}
+.skin-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+.skin-card-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+}
+.skin-card.selected .skin-card-badge {
+  background: #f59e0b;
+  color: #000;
+}
+
+/* FPS Options */
+.fps-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.fps-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px 10px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.fps-btn span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+.fps-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.fps-btn.active {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+}
+.fps-btn.active span { color: #86efac; }
+
 .hint {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.85);
   margin: 0;
@@ -124,23 +322,80 @@ canvas:focus-visible, .sound-btn:focus-visible {
 <body>
 
 <div class="game-container">
-  <button id="soundBtn" class="sound-btn" aria-label="Bật/Tắt âm thanh" title="Bật/Tắt âm thanh (Phím M)">
-    <svg id="iconOn" viewBox="0 0 24 24">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-    </svg>
-    <svg id="iconOff" viewBox="0 0 24 24" style="display:none;">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-      <line x1="23" y1="9" x2="17" y2="15"></line>
-      <line x1="17" y1="9" x2="23" y2="15"></line>
-    </svg>
-  </button>
+  <!-- Thanh điều khiển trên nóc -->
+  <div class="top-bar">
+    <div class="top-left">
+      <button id="skinBtn" class="top-btn" title="Chọn ngoại hình chim">
+        <span>🎨</span> Skin
+      </button>
+      <button id="fpsBtn" class="top-btn" title="Cài đặt tốc độ khung hình">
+        <span>⚡</span> <span id="fpsLabel">60 FPS</span>
+      </button>
+    </div>
+    <div class="top-right">
+      <div id="liveFps" class="top-btn btn-icon-only fps-tag" title="FPS thực tế">60</div>
+      <button id="soundBtn" class="top-btn btn-icon-only" aria-label="Bật/Tắt âm thanh" title="Âm thanh (Phím M)">
+        <svg id="iconOn" viewBox="0 0 24 24">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <svg id="iconOff" viewBox="0 0 24 24" style="display:none;">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Đổi Skin -->
+  <div id="skinModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><span>🎨</span> Chọn Skin Chim</h3>
+        <button id="closeSkinModal" class="modal-close">&times;</button>
+      </div>
+      <div id="skinsList" class="skins-grid">
+        <!-- Render các skin bằng Javascript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cài đặt FPS -->
+  <div id="fpsModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><span>⚡</span> Tùy Chọn FPS</h3>
+        <button id="closeFpsModal" class="modal-close">&times;</button>
+      </div>
+      <div class="fps-options">
+        <button class="fps-btn" data-fps="30">
+          30 FPS
+          <span>Tiết kiệm pin</span>
+        </button>
+        <button class="fps-btn" data-fps="60">
+          60 FPS
+          <span>Chuẩn mượt mà</span>
+        </button>
+        <button class="fps-btn" data-fps="120">
+          120 FPS
+          <span>Siêu mượt (120Hz)</span>
+        </button>
+        <button class="fps-btn" data-fps="0">
+          Tối Đa (Max)
+          <span>Tần số quét gốc</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Canvas hiển thị chính (alpha: false tối ưu GPU) -->
   <canvas id="c" width="360" height="560" tabindex="0" aria-label="Flappy Bird"></canvas>
 </div>
 
 <p class="hint">
-  <span class="kbd">Space</span> / <span class="kbd">↑</span> / <span class="kbd">Click</span> để bay
+  <span class="kbd">Space</span> / <span class="kbd">Chạm</span> để bay
   • <span class="kbd">M</span> Âm thanh
 </p>
 
@@ -274,27 +529,180 @@ try { sound.muted = localStorage.getItem('flappy-muted') === 'true'; } catch(e){
 sound.updateIcon();
 
 // ==========================================
-// 2. CẤU HÌNH & THÔNG SỐ GAME
+// 2. BỘ SƯU TẬP SKINS ĐA DẠNG
 // ==========================================
+const SKINS = {
+  classic: {
+    id: 'classic',
+    name: 'Vàng Cổ Điển',
+    icon: '🐥',
+    body: ['#ffe066', '#fbb01b', '#d97706'],
+    bodyOutline: '#6b3602',
+    belly: '#fffbeb',
+    wing: ['#ffffff', '#fde68a', '#f59e0b'],
+    wingOutline: '#78350f',
+    beak: ['#fb923c', '#ea580c'],
+    beakOutline: '#7c2d12',
+    tail: '#ea580c',
+    tailOutline: '#7c2d12',
+    crest: '#d97706',
+    pupil: '#0f172a'
+  },
+  frost: {
+    id: 'frost',
+    name: 'Băng Lam',
+    icon: '🐦',
+    body: ['#a5f3fc', '#38bdf8', '#0284c7'],
+    bodyOutline: '#0c4a6e',
+    belly: '#f0fdfa',
+    wing: ['#e0f2fe', '#7dd3fc', '#0369a1'],
+    wingOutline: '#075985',
+    beak: ['#fdba74', '#f97316'],
+    beakOutline: '#9a3412',
+    tail: '#0284c7',
+    tailOutline: '#0c4a6e',
+    crest: '#0ea5e9',
+    pupil: '#082f49'
+  },
+  phoenix: {
+    id: 'phoenix',
+    name: 'Hỏa Phụng',
+    icon: '🦅',
+    body: ['#fca5a5', '#ef4444', '#b91c1c'],
+    bodyOutline: '#450a0a',
+    belly: '#fef3c7',
+    wing: ['#fef08a', '#f59e0b', '#dc2626'],
+    wingOutline: '#7f1d1d',
+    beak: ['#fde047', '#f59e0b'],
+    beakOutline: '#78350f',
+    tail: '#dc2626',
+    tailOutline: '#7f1d1d',
+    crest: '#f59e0b',
+    pupil: '#450a0a'
+  },
+  phantom: {
+    id: 'phantom',
+    name: 'Bóng Đêm',
+    icon: '🦇',
+    body: ['#94a3b8', '#475569', '#1e1b4b'],
+    bodyOutline: '#09090b',
+    belly: '#334155',
+    wing: ['#c084fc', '#818cf8', '#4338ca'],
+    wingOutline: '#312e81',
+    beak: ['#cbd5e1', '#64748b'],
+    beakOutline: '#1e293b',
+    tail: '#312e81',
+    tailOutline: '#09090b',
+    crest: '#a855f7',
+    pupil: '#fde047'
+  },
+  mecha: {
+    id: 'mecha',
+    name: 'Cyber Mecha',
+    icon: '🤖',
+    body: ['#f1f5f9', '#94a3b8', '#475569'],
+    bodyOutline: '#0f172a',
+    belly: '#06b6d4',
+    wing: ['#a5f3fc', '#22d3ee', '#0891b2'],
+    wingOutline: '#155e75',
+    beak: ['#38bdf8', '#0284c7'],
+    beakOutline: '#0369a1',
+    tail: '#0284c7',
+    tailOutline: '#0f172a',
+    crest: '#06b6d4',
+    pupil: '#22d3ee',
+    isCyber: true
+  },
+  sakura: {
+    id: 'sakura',
+    name: 'Hoa Anh Đào',
+    icon: '🌸',
+    body: ['#fce7f3', '#f472b6', '#db2777'],
+    bodyOutline: '#701a75',
+    belly: '#fff1f2',
+    wing: ['#ffffff', '#fbcfe8', '#e11d48'],
+    wingOutline: '#881337',
+    beak: ['#fed7aa', '#fb923c'],
+    beakOutline: '#9a3412',
+    tail: '#db2777',
+    tailOutline: '#701a75',
+    crest: '#f43f5e',
+    pupil: '#4c0519'
+  }
+};
+
+let currentSkinId = 'classic';
+try {
+  const savedSkin = localStorage.getItem('flappy-skin');
+  if (savedSkin && SKINS[savedSkin]) currentSkinId = savedSkin;
+} catch(e){}
+
+// ==========================================
+// 3. CẤU HÌNH FPS & TỐI ƯU HIỆU NĂNG
+// ==========================================
+let targetFps = 60; // 30, 60, 120, hoặc 0 (Max/Tối đa)
+try {
+  const savedFps = localStorage.getItem('flappy-fps');
+  if (savedFps !== null) targetFps = parseInt(savedFps, 10);
+} catch(e){}
+
+function updateFpsUI() {
+  const label = document.getElementById('fpsLabel');
+  if (label) {
+    label.textContent = targetFps === 0 ? 'Max FPS' : `${targetFps} FPS`;
+  }
+  document.querySelectorAll('.fps-btn').forEach(btn => {
+    const f = parseInt(btn.dataset.fps, 10);
+    btn.classList.toggle('active', f === targetFps);
+  });
+}
+updateFpsUI();
+
+// Khởi tạo Canvas với context 2d desynchronized và tắt alpha để tăng tốc GPU
 const cv = document.getElementById('c');
-const ctx = cv.getContext('2d');
+const ctx = cv.getContext('2d', { alpha: false, desynchronized: true });
 const W = 360, H = 560, GH = 72, GY = H - GH;
 const GRAV = 0.42, FLAP = -7.2, BASE_SPEED = 2.4, GAP = 146, PW = 56, SPACE = 190, BR = 13, BX = 90;
 
 let state = 'ready'; // 'ready' | 'play' | 'dead'
 let bird, pipes, score = 0, best = 0;
-let groundX = 0, tick = 0, flash = 0, last = 0;
+let groundX = 0, tick = 0, flash = 0;
 let isNewBest = false;
 let shake = 0;
-
-// Thông báo cột mốc màn chơi (Milestone banner)
 let milestoneText = '';
 let milestoneTimer = 0;
-
 let clouds = [];
+
 try { best = +localStorage.getItem('flappy-best') || 0; } catch(e){}
 
-// Khởi tạo các đám mây cảnh nền
+// Pre-cache Gradients nền và ống (Tránh khởi tạo rác bộ nhớ mỗi frame)
+let cachedSkyGrad, cachedSunGrad, cachedNormalPipeGrad, cachedMovingPipeGrad;
+function initCachedGradients() {
+  cachedSkyGrad = ctx.createLinearGradient(0, 0, 0, GY);
+  cachedSkyGrad.addColorStop(0, '#38bdf8');
+  cachedSkyGrad.addColorStop(0.65, '#7dd3fc');
+  cachedSkyGrad.addColorStop(1, '#e0f2fe');
+
+  cachedSunGrad = ctx.createRadialGradient(290, 60, 4, 290, 60, 48);
+  cachedSunGrad.addColorStop(0, 'rgba(255, 255, 230, 0.9)');
+  cachedSunGrad.addColorStop(0.3, 'rgba(254, 240, 138, 0.5)');
+  cachedSunGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+
+  cachedNormalPipeGrad = ctx.createLinearGradient(0, 0, PW, 0);
+  cachedNormalPipeGrad.addColorStop(0, '#53a847');
+  cachedNormalPipeGrad.addColorStop(0.3, '#79d15c');
+  cachedNormalPipeGrad.addColorStop(0.7, '#489c3b');
+  cachedNormalPipeGrad.addColorStop(1, '#2c6923');
+
+  cachedMovingPipeGrad = ctx.createLinearGradient(0, 0, PW, 0);
+  cachedMovingPipeGrad.addColorStop(0, '#439737');
+  cachedMovingPipeGrad.addColorStop(0.3, '#74cb57');
+  cachedMovingPipeGrad.addColorStop(0.7, '#409433');
+  cachedMovingPipeGrad.addColorStop(1, '#27621f');
+}
+initCachedGradients();
+
+// Khởi tạo mây
 for (let i = 0; i < 5; i++) {
   clouds.push({
     x: Math.random() * W * 1.5,
@@ -305,14 +713,11 @@ for (let i = 0; i < 5; i++) {
   });
 }
 
-// Hàm tính tốc độ cuộn theo điểm số (Màn 10 trở đi tăng dần)
 function getSpeed() {
   if (score < 10) return BASE_SPEED;
-  // Từ điểm 10 trở đi, tốc độ tăng dần từ từ theo điểm
   return Math.min(4.3, BASE_SPEED + (score - 9) * 0.08);
 }
 
-// Hàm xác định màn chơi hiện tại
 function getLevel() {
   if (score < 10) return 1;
   if (score < 20) return 2;
@@ -352,15 +757,18 @@ function addPipe(x) {
     top: baseTop,
     passed: false,
     phase: Math.random() * Math.PI * 2,
-    moveSpeed: 0.038 + Math.random() * 0.016, // Tốc độ trồi sụt
-    moveAmp: 34 + Math.random() * 12          // Biên độ trồi sụt
+    moveSpeed: 0.038 + Math.random() * 0.016,
+    moveAmp: 34 + Math.random() * 12
   });
 }
 
 // ==========================================
-// 3. VỖ CÁNH & CHẾT
+// 4. ĐIỀU KHIỂN & VẬT LÝ
 // ==========================================
 function flap() {
+  // Nếu modal đang mở thì không bay
+  if (document.querySelector('.modal-overlay.active')) return;
+
   sound.init();
 
   if (state === 'ready') {
@@ -395,9 +803,6 @@ function die() {
   }
 }
 
-// ==========================================
-// 4. CẬP NHẬT LOGIC VẬT LÝ
-// ==========================================
 function update(dt) {
   tick += dt;
 
@@ -406,12 +811,10 @@ function update(dt) {
 
   const currentSpeed = getSpeed();
 
-  // Cuộn mặt đất theo tốc độ hiện tại
   if (state !== 'dead') {
     groundX = (groundX - currentSpeed * dt) % 24;
   }
 
-  // Cuộn mây nền
   for (const c of clouds) {
     c.x -= c.speed * dt;
     if (c.x < -80) {
@@ -420,7 +823,6 @@ function update(dt) {
     }
   }
 
-  // Chớp mắt
   bird.blinkTimer -= dt;
   if (bird.blinkTimer <= 0) {
     bird.isBlinking = true;
@@ -430,7 +832,6 @@ function update(dt) {
     }
   }
 
-  // Trạng thái chờ bắt đầu
   if (state === 'ready') {
     bird.y = H / 2 - 40 + Math.sin(tick * 0.08) * 8;
     bird.rot = Math.sin(tick * 0.08) * 0.06;
@@ -438,39 +839,33 @@ function update(dt) {
     return;
   }
 
-  // Trọng lực rơi
   bird.v += GRAV * dt;
   bird.y += bird.v * dt;
 
-  // Tính góc nghiêng mỏ chim mượt mà
   if (bird.v < 0) {
-    bird.targetRot = -0.42; // Nghiêng lên khi bay
+    bird.targetRot = -0.42;
     bird.wingAngle = Math.sin(tick * 0.4) * 0.5;
   } else {
-    // Chúi đầu xuống khi rơi
     bird.targetRot = Math.min(1.25, (bird.v - 2) * 0.13);
     bird.wingAngle = Math.sin(tick * 0.15) * 0.25;
   }
   bird.rot += (bird.targetRot - bird.rot) * 0.25 * dt;
 
   if (state === 'play') {
-    // Cập nhật các ống chướng ngại vật
     for (const p of pipes) {
       p.x -= currentSpeed * dt;
 
-      // TỪ MÀN 20 TRỞ ĐI: CÁC ỐNG DI CHUYỂN LÊN VÀ XUỐNG
+      // Từ màn 20 trở đi: Ống di chuyển lên xuống
       if (score >= 20) {
         const offset = Math.sin(tick * p.moveSpeed + p.phase) * p.moveAmp;
         p.top = Math.max(45, Math.min(GY - GAP - 45, p.baseTop + offset));
       }
 
-      // Tính điểm khi vượt qua ống
       if (!p.passed && p.x + PW < BX - BR) {
         p.passed = true;
         score++;
         sound.playScore();
 
-        // Kích hoạt thông báo khi đạt các mốc màn chơi
         if (score === 10) {
           milestoneText = '⚡ MÀN 10: TỐC ĐỘ TĂNG DẦN!';
           milestoneTimer = 110;
@@ -480,7 +875,6 @@ function update(dt) {
         }
       }
 
-      // Kiểm tra va chạm ống trên / ống dưới
       if (BX + BR - 4 > p.x && BX - BR + 4 < p.x + PW) {
         if (bird.y - BR + 4 < p.top || bird.y + BR - 4 > p.top + GAP) {
           die();
@@ -488,13 +882,11 @@ function update(dt) {
       }
     }
 
-    // Tái tạo ống mới khi ống cũ trôi khỏi màn hình
     if (pipes.length > 0 && pipes[0].x + PW < 0) {
       pipes.shift();
       addPipe(pipes[pipes.length - 1].x + SPACE);
     }
 
-    // Va chạm mặt đất & trần
     if (bird.y + BR > GY) {
       bird.y = GY - BR;
       die();
@@ -516,7 +908,7 @@ function update(dt) {
 // ==========================================
 function drawCloud(c) {
   ctx.save();
-  ctx.translate(c.x, c.y);
+  ctx.translate(c.x | 0, c.y | 0);
   ctx.scale(c.scale, c.scale);
   ctx.fillStyle = `rgba(255, 255, 255, ${c.alpha})`;
   ctx.beginPath();
@@ -529,179 +921,174 @@ function drawCloud(c) {
 }
 
 function drawPipe(p) {
-  const x = p.x;
-  const top = p.top;
+  const x = p.x | 0;
+  const top = p.top | 0;
   const b = top + GAP;
   const isMovingPipe = score >= 20;
 
-  // Gradient thân ống
-  const g = ctx.createLinearGradient(x, 0, x + PW, 0);
-  if (isMovingPipe) {
-    // Ống di chuyển có viền phản quang cảnh báo nhẹ
-    g.addColorStop(0, '#439737');
-    g.addColorStop(0.3, '#74cb57');
-    g.addColorStop(0.7, '#409433');
-    g.addColorStop(1, '#27621f');
-  } else {
-    g.addColorStop(0, '#53a847');
-    g.addColorStop(0.3, '#79d15c');
-    g.addColorStop(0.7, '#489c3b');
-    g.addColorStop(1, '#2c6923');
-  }
+  ctx.save();
+  ctx.translate(x, 0);
 
-  ctx.fillStyle = g;
+  ctx.fillStyle = isMovingPipe ? cachedMovingPipeGrad : cachedNormalPipeGrad;
   ctx.strokeStyle = '#1d4818';
   ctx.lineWidth = 3;
 
   // 1. Ống trên
-  ctx.fillRect(x, 0, PW, top);
-  ctx.strokeRect(x, -3, PW, top + 3);
-  ctx.fillRect(x - 5, top - 24, PW + 10, 24);
-  ctx.strokeRect(x - 5, top - 24, PW + 10, 24);
+  ctx.fillRect(0, 0, PW, top);
+  ctx.strokeRect(0, -3, PW, top + 3);
+  ctx.fillRect(-5, top - 24, PW + 10, 24);
+  ctx.strokeRect(-5, top - 24, PW + 10, 24);
 
-  // Vệt sáng ống trên
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillRect(x + 6, 0, 6, top - 24);
-  ctx.fillRect(x + 1, top - 24, 6, 24);
+  ctx.fillRect(6, 0, 6, top - 24);
+  ctx.fillRect(1, top - 24, 6, 24);
 
   // 2. Ống dưới
-  ctx.fillStyle = g;
-  ctx.fillRect(x, b, PW, GY - b);
-  ctx.strokeRect(x, b, PW, GY - b);
-  ctx.fillRect(x - 5, b, PW + 10, 24);
-  ctx.strokeRect(x - 5, b, PW + 10, 24);
+  ctx.fillStyle = isMovingPipe ? cachedMovingPipeGrad : cachedNormalPipeGrad;
+  ctx.fillRect(0, b, PW, GY - b);
+  ctx.strokeRect(0, b, PW, GY - b);
+  ctx.fillRect(-5, b, PW + 10, 24);
+  ctx.strokeRect(-5, b, PW + 10, 24);
 
-  // Vệt sáng ống dưới
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillRect(x + 6, b + 24, 6, GY - b - 24);
-  ctx.fillRect(x + 1, b, 6, 24);
+  ctx.fillRect(6, b + 24, 6, GY - b - 24);
+  ctx.fillRect(1, b, 6, 24);
 
-  // Mũi tên chỉ dẫn trồi sụt từ màn 20 trở đi
   if (isMovingPipe) {
     ctx.fillStyle = '#fef08a';
     ctx.font = '700 12px "Baloo 2", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('↕', x + PW / 2, top - 8);
-    ctx.fillText('↕', x + PW / 2, b + 16);
+    ctx.fillText('↕', PW / 2, top - 8);
+    ctx.fillText('↕', PW / 2, b + 16);
   }
+  ctx.restore();
 }
 
-// Vẽ chú chim chuẩn mực, tự nhiên, không bị biến dạng co dãn
-function drawBird() {
-  ctx.save();
-  ctx.translate(BX, bird.y);
-  ctx.rotate(bird.rot);
+// Vẽ chim theo Skin đã chọn (Tái sử dụng cho cả Canvas chính và preview modal)
+function drawBirdCustom(tCtx, x, y, rot, wingAngle, isDead, isBlinking, s) {
+  tCtx.save();
+  tCtx.translate(x, y);
+  tCtx.rotate(rot);
 
-  // Đuôi chim
-  ctx.fillStyle = '#ea580c';
-  ctx.strokeStyle = '#7c2d12';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(-BR - 2, -2);
-  ctx.lineTo(-BR - 12, -6);
-  ctx.lineTo(-BR - 8, 1);
-  ctx.lineTo(-BR - 12, 7);
-  ctx.lineTo(-BR - 2, 4);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
+  // Đuôi
+  tCtx.fillStyle = s.tail;
+  tCtx.strokeStyle = s.tailOutline;
+  tCtx.lineWidth = 2;
+  tCtx.beginPath();
+  tCtx.moveTo(-BR - 2, -2);
+  tCtx.lineTo(-BR - 12, -6);
+  tCtx.lineTo(-BR - 8, 1);
+  tCtx.lineTo(-BR - 12, 7);
+  tCtx.lineTo(-BR - 2, 4);
+  tCtx.closePath();
+  tCtx.fill();
+  tCtx.stroke();
 
-  // Thân chim tròn trĩnh tự nhiên
-  const bodyGrad = ctx.createRadialGradient(-3, -4, 2, 0, 0, BR + 6);
-  bodyGrad.addColorStop(0, '#ffe066');
-  bodyGrad.addColorStop(0.6, '#fbb01b');
-  bodyGrad.addColorStop(1, '#d97706');
+  // Thân chim
+  const bGrad = tCtx.createRadialGradient(-3, -4, 2, 0, 0, BR + 6);
+  bGrad.addColorStop(0, s.body[0]);
+  bGrad.addColorStop(0.6, s.body[1]);
+  bGrad.addColorStop(1, s.body[2]);
 
-  ctx.fillStyle = bodyGrad;
-  ctx.strokeStyle = '#6b3602';
-  ctx.lineWidth = 2.4;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, BR + 3, BR, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
+  tCtx.fillStyle = bGrad;
+  tCtx.strokeStyle = s.bodyOutline;
+  tCtx.lineWidth = 2.4;
+  tCtx.beginPath();
+  tCtx.ellipse(0, 0, BR + 3, BR, 0, 0, Math.PI * 2);
+  tCtx.fill();
+  tCtx.stroke();
 
-  // Bụng chim
-  ctx.fillStyle = '#fffbeb';
-  ctx.beginPath();
-  ctx.ellipse(2, 3, BR - 5, BR - 5, 0.2, 0, Math.PI * 2);
-  ctx.fill();
+  // Bụng
+  tCtx.fillStyle = s.belly;
+  tCtx.beginPath();
+  tCtx.ellipse(2, 3, BR - 5, BR - 5, 0.2, 0, Math.PI * 2);
+  tCtx.fill();
 
-  // Cánh chim
-  ctx.save();
-  ctx.translate(-5, 2);
-  ctx.rotate(bird.wingAngle);
+  // Cánh
+  tCtx.save();
+  tCtx.translate(-5, 2);
+  tCtx.rotate(wingAngle);
 
-  const wingGrad = ctx.createLinearGradient(-6, -6, 12, 10);
-  wingGrad.addColorStop(0, '#ffffff');
-  wingGrad.addColorStop(0.4, '#fde68a');
-  wingGrad.addColorStop(1, '#f59e0b');
+  const wGrad = tCtx.createLinearGradient(-6, -6, 12, 10);
+  wGrad.addColorStop(0, s.wing[0]);
+  wGrad.addColorStop(0.4, s.wing[1]);
+  wGrad.addColorStop(1, s.wing[2]);
 
-  ctx.fillStyle = wingGrad;
-  ctx.strokeStyle = '#78350f';
-  ctx.lineWidth = 2.2;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 9, 6, -0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
+  tCtx.fillStyle = wGrad;
+  tCtx.strokeStyle = s.wingOutline;
+  tCtx.lineWidth = 2.2;
+  tCtx.beginPath();
+  tCtx.ellipse(0, 0, 9, 6, -0.2, 0, Math.PI * 2);
+  tCtx.fill();
+  tCtx.stroke();
+  tCtx.restore();
 
-  // Mỏ chim
-  const beakGrad = ctx.createLinearGradient(BR, 0, BR + 11, 4);
-  beakGrad.addColorStop(0, '#fb923c');
-  beakGrad.addColorStop(1, '#ea580c');
+  // Mỏ
+  const kGrad = tCtx.createLinearGradient(BR, 0, BR + 11, 4);
+  kGrad.addColorStop(0, s.beak[0]);
+  kGrad.addColorStop(1, s.beak[1]);
 
-  ctx.fillStyle = beakGrad;
-  ctx.strokeStyle = '#7c2d12';
-  ctx.lineWidth = 2.2;
-  ctx.beginPath();
-  ctx.moveTo(BR, -2);
-  ctx.lineTo(BR + 11, 2);
-  ctx.lineTo(BR, 7);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
+  tCtx.fillStyle = kGrad;
+  tCtx.strokeStyle = s.beakOutline;
+  tCtx.lineWidth = 2.2;
+  tCtx.beginPath();
+  tCtx.moveTo(BR, -2);
+  tCtx.lineTo(BR + 11, 2);
+  tCtx.lineTo(BR, 7);
+  tCtx.closePath();
+  tCtx.fill();
+  tCtx.stroke();
 
-  // Mắt chim
+  // Mắt
   const eyeX = 7, eyeY = -5;
-  if (state === 'dead') {
-    // Mắt chữ X khi thua
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 2.8;
-    ctx.beginPath();
-    ctx.moveTo(eyeX - 4, eyeY - 4); ctx.lineTo(eyeX + 4, eyeY + 4);
-    ctx.moveTo(eyeX + 4, eyeY - 4); ctx.lineTo(eyeX - 4, eyeY + 4);
-    ctx.stroke();
-  } else if (bird.isBlinking) {
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(eyeX, eyeY + 1, 5, 0.2, Math.PI - 0.2);
-    ctx.stroke();
+  if (isDead) {
+    tCtx.strokeStyle = '#1e293b';
+    tCtx.lineWidth = 2.8;
+    tCtx.beginPath();
+    tCtx.moveTo(eyeX - 4, eyeY - 4); tCtx.lineTo(eyeX + 4, eyeY + 4);
+    tCtx.moveTo(eyeX + 4, eyeY - 4); tCtx.lineTo(eyeX - 4, eyeY + 4);
+    tCtx.stroke();
+  } else if (isBlinking) {
+    tCtx.strokeStyle = '#1e293b';
+    tCtx.lineWidth = 2.5;
+    tCtx.beginPath();
+    tCtx.arc(eyeX, eyeY + 1, 5, 0.2, Math.PI - 0.2);
+    tCtx.stroke();
+  } else if (s.isCyber) {
+    // Kính ngắm neon của Mecha
+    tCtx.fillStyle = '#06b6d4';
+    tCtx.strokeStyle = '#0891b2';
+    tCtx.lineWidth = 1.5;
+    tCtx.beginPath();
+    tCtx.roundRect(eyeX - 3, eyeY - 4, 11, 8, 3);
+    tCtx.fill();
+    tCtx.stroke();
+
+    tCtx.fillStyle = '#ecfeff';
+    tCtx.fillRect(eyeX, eyeY - 1, 6, 2);
   } else {
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    ctx.arc(eyeX, eyeY, 5.8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    tCtx.fillStyle = '#ffffff';
+    tCtx.strokeStyle = '#1e293b';
+    tCtx.lineWidth = 2.2;
+    tCtx.beginPath();
+    tCtx.arc(eyeX, eyeY, 5.8, 0, Math.PI * 2);
+    tCtx.fill();
+    tCtx.stroke();
 
-    // Con ngươi
-    const pupilOffX = bird.rot < 0 ? 1.5 : 1;
-    const pupilOffY = bird.v > 2 ? 1.5 : 0;
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.arc(eyeX + pupilOffX, eyeY + pupilOffY, 2.7, 0, Math.PI * 2);
-    ctx.fill();
+    const pupilOffX = rot < 0 ? 1.5 : 1;
+    const pupilOffY = bird && bird.v > 2 ? 1.5 : 0;
+    tCtx.fillStyle = s.pupil;
+    tCtx.beginPath();
+    tCtx.arc(eyeX + pupilOffX, eyeY + pupilOffY, 2.7, 0, Math.PI * 2);
+    tCtx.fill();
 
-    // Đốm phản xạ sáng
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(eyeX + pupilOffX + 1, eyeY + pupilOffY - 1, 1.1, 0, Math.PI * 2);
-    ctx.fill();
+    tCtx.fillStyle = '#ffffff';
+    tCtx.beginPath();
+    tCtx.arc(eyeX + pupilOffX + 1, eyeY + pupilOffY - 1, 1.1, 0, Math.PI * 2);
+    tCtx.fill();
   }
 
-  ctx.restore();
+  tCtx.restore();
 }
 
 function renderText(txt, x, y, size, color, strokeColor = '#1d2b3a') {
@@ -724,20 +1111,12 @@ function draw() {
     ctx.translate(rx, ry);
   }
 
-  // Nền trời
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, GY);
-  skyGrad.addColorStop(0, '#38bdf8');
-  skyGrad.addColorStop(0.65, '#7dd3fc');
-  skyGrad.addColorStop(1, '#e0f2fe');
-  ctx.fillStyle = skyGrad;
+  // Nền trời (dùng gradient pre-cache)
+  ctx.fillStyle = cachedSkyGrad;
   ctx.fillRect(0, 0, W, H);
 
   // Mặt trời
-  const sunGrad = ctx.createRadialGradient(290, 60, 4, 290, 60, 48);
-  sunGrad.addColorStop(0, 'rgba(255, 255, 230, 0.9)');
-  sunGrad.addColorStop(0.3, 'rgba(254, 240, 138, 0.5)');
-  sunGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
-  ctx.fillStyle = sunGrad;
+  ctx.fillStyle = cachedSunGrad;
   ctx.beginPath();
   ctx.arc(290, 60, 48, 0, Math.PI * 2);
   ctx.fill();
@@ -745,7 +1124,7 @@ function draw() {
   // Mây
   for (const c of clouds) drawCloud(c);
 
-  // Đồi xa
+  // Đồi núi
   ctx.fillStyle = '#a7f3d0';
   ctx.beginPath();
   ctx.moveTo(0, GY);
@@ -766,7 +1145,8 @@ function draw() {
   ctx.fillStyle = '#4ade80';
   ctx.fillRect(0, GY, W, 15);
   ctx.fillStyle = '#22c55e';
-  for (let x = groundX - 24; x < W + 24; x += 24) {
+  const gX = groundX | 0;
+  for (let x = gX - 24; x < W + 24; x += 24) {
     ctx.beginPath();
     ctx.moveTo(x, GY);
     ctx.lineTo(x + 12, GY + 15);
@@ -776,35 +1156,35 @@ function draw() {
   ctx.fillStyle = '#b79753';
   ctx.fillRect(0, GY + 15, W, 3);
 
-  // Chú chim
-  drawBird();
+  // Vẽ chim theo skin
+  const activeSkin = SKINS[currentSkinId] || SKINS.classic;
+  drawBirdCustom(ctx, BX, bird.y | 0, bird.rot, bird.wingAngle, state === 'dead', bird.isBlinking, activeSkin);
 
-  // Điểm số & Huy hiệu màn chơi
+  // Điểm số & Huy hiệu màn
   if (state === 'play') {
-    renderText(score, W / 2, 75, 52, '#ffffff');
+    renderText(score, W / 2, 80, 52, '#ffffff');
 
-    // Huy hiệu màn nhỏ ở góc trên bên trái
     const lvl = getLevel();
     const lvlText = lvl === 1 ? 'Màn 1' : (lvl === 2 ? 'Màn 2 ⚡' : 'Màn 3 🌀');
     const lvlColor = lvl === 1 ? '#38bdf8' : (lvl === 2 ? '#f59e0b' : '#ef4444');
-    
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
     ctx.beginPath();
-    ctx.roundRect(14, 14, 88, 28, 14);
+    ctx.roundRect(14, 58, 88, 26, 13);
     ctx.fill();
     ctx.font = '800 13px "Baloo 2", sans-serif';
     ctx.fillStyle = lvlColor;
     ctx.textAlign = 'center';
-    ctx.fillText(lvlText, 58, 33);
+    ctx.fillText(lvlText, 58, 76);
   }
 
-  // Thông báo cột mốc màn chơi (Milestone Banner)
+  // Thông báo cột mốc màn chơi
   if (milestoneTimer > 0 && state === 'play') {
     const alpha = Math.min(1, milestoneTimer / 20);
     ctx.save();
     ctx.fillStyle = `rgba(15, 23, 42, ${0.85 * alpha})`;
     ctx.beginPath();
-    ctx.roundRect(W / 2 - 130, 105, 260, 36, 18);
+    ctx.roundRect(W / 2 - 130, 115, 260, 36, 18);
     ctx.fill();
     ctx.strokeStyle = `rgba(245, 158, 11, ${alpha})`;
     ctx.lineWidth = 2;
@@ -813,13 +1193,13 @@ function draw() {
     ctx.font = '800 15px "Baloo 2", sans-serif';
     ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
     ctx.textAlign = 'center';
-    ctx.fillText(milestoneText, W / 2, 129);
+    ctx.fillText(milestoneText, W / 2, 139);
     ctx.restore();
   }
 
   // Màn hình bắt đầu
   if (state === 'ready') {
-    renderText('Flappy Bird', W / 2, 140, 46, '#ffd54a');
+    renderText('Flappy Bird', W / 2, 150, 46, '#ffd54a');
     renderText('Chạm hoặc nhấn Space để bay', W / 2, GY - 45, 20, '#ffffff');
 
     const arrowBounce = Math.sin(tick * 0.15) * 6;
@@ -876,7 +1256,6 @@ function draw() {
     ctx.font = '700 22px "Baloo 2", sans-serif';
     ctx.fillText('Cao nhất: ' + best, W / 2, 275);
 
-    // Nút chơi lại
     ctx.fillStyle = '#10b981';
     ctx.beginPath();
     ctx.roundRect(W / 2 - 80, 305, 160, 42, 14);
@@ -890,7 +1269,6 @@ function draw() {
     ctx.fillText('Chơi lại', W / 2, 332);
   }
 
-  // Chớp sáng va chạm
   if (flash > 0) {
     ctx.fillStyle = `rgba(255, 255, 255, ${flash})`;
     ctx.fillRect(0, 0, W, H);
@@ -899,15 +1277,131 @@ function draw() {
   ctx.restore();
 }
 
-function loop(t) {
-  const dt = Math.min(2.5, (t - last) / 16.667 || 1);
-  last = t;
+// ==========================================
+// 6. GAME LOOP CÂN BẰNG FPS & HIỆU NĂNG
+// ==========================================
+let lastTime = performance.now();
+let lastFpsUpdate = performance.now();
+let frameCount = 0;
+let realFps = 60;
+const liveFpsEl = document.getElementById('liveFps');
+
+function gameLoop(now) {
+  requestAnimationFrame(gameLoop);
+
+  // Điều phối giới hạn FPS
+  if (targetFps > 0) {
+    const minInterval = 1000 / targetFps;
+    const elapsed = now - lastTime;
+    if (elapsed < minInterval - 0.7) {
+      return; // Bỏ qua render để khớp đúng tốc độ FPS mong muốn
+    }
+  }
+
+  const dt = Math.min(2.5, (now - lastTime) / 16.667 || 1);
+  lastTime = now;
+
+  // Tính toán FPS thực tế
+  frameCount++;
+  if (now - lastFpsUpdate >= 500) {
+    realFps = Math.round((frameCount * 1000) / (now - lastFpsUpdate));
+    frameCount = 0;
+    lastFpsUpdate = now;
+    if (liveFpsEl) {
+      liveFpsEl.textContent = realFps;
+      liveFpsEl.style.color = realFps >= 50 ? '#4ade80' : (realFps >= 28 ? '#facc15' : '#f87171');
+    }
+  }
+
   update(dt);
   draw();
-  requestAnimationFrame(loop);
 }
 
-// Bàn phím
+// ==========================================
+// 7. GIAO DIỆN CHỌN SKIN & CÀI ĐẶT FPS
+// ==========================================
+const skinModal = document.getElementById('skinModal');
+const fpsModal = document.getElementById('fpsModal');
+const skinBtn = document.getElementById('skinBtn');
+const fpsBtn = document.getElementById('fpsBtn');
+const closeSkinModal = document.getElementById('closeSkinModal');
+const closeFpsModal = document.getElementById('closeFpsModal');
+const skinsList = document.getElementById('skinsList');
+
+function renderSkinsModal() {
+  skinsList.innerHTML = '';
+  Object.values(SKINS).forEach(s => {
+    const card = document.createElement('div');
+    card.className = `skin-card ${s.id === currentSkinId ? 'selected' : ''}`;
+    card.innerHTML = `
+      <canvas width="60" height="48"></canvas>
+      <div class="skin-card-name">${s.icon} ${s.name}</div>
+      <div class="skin-card-badge">${s.id === currentSkinId ? 'Đang chọn' : 'Chọn'}</div>
+    `;
+
+    // Vẽ preview chim trên từng card
+    const pCv = card.querySelector('canvas');
+    const pCtx = pCv.getContext('2d');
+    drawBirdCustom(pCtx, 30, 24, 0, 0, false, false, s);
+
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentSkinId = s.id;
+      try { localStorage.setItem('flappy-skin', currentSkinId); } catch(err){}
+      renderSkinsModal();
+      setTimeout(() => { skinModal.classList.remove('active'); }, 150);
+    });
+
+    skinsList.appendChild(card);
+  });
+}
+renderSkinsModal();
+
+// Mở modal Skin
+skinBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  renderSkinsModal();
+  skinModal.classList.add('active');
+  fpsModal.classList.remove('active');
+});
+closeSkinModal.addEventListener('click', (e) => {
+  e.stopPropagation();
+  skinModal.classList.remove('active');
+});
+
+// Mở modal FPS
+fpsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  fpsModal.classList.add('active');
+  skinModal.classList.remove('active');
+});
+closeFpsModal.addEventListener('click', (e) => {
+  e.stopPropagation();
+  fpsModal.classList.remove('active');
+});
+
+// Chọn mức FPS
+document.querySelectorAll('.fps-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    targetFps = parseInt(btn.dataset.fps, 10);
+    try { localStorage.setItem('flappy-fps', targetFps); } catch(err){}
+    updateFpsUI();
+    setTimeout(() => { fpsModal.classList.remove('active'); }, 150);
+  });
+});
+
+// Đóng modal khi bấm ra ngoài card
+[skinModal, fpsModal].forEach(modal => {
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('active');
+  });
+  modal.addEventListener('pointerdown', (e) => e.stopPropagation());
+});
+
+// ==========================================
+// 8. LẮNG NGHE SỰ KIỆN ĐIỀU KHIỂN
+// ==========================================
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     e.preventDefault();
@@ -915,31 +1409,29 @@ window.addEventListener('keydown', e => {
   } else if (e.code === 'KeyM') {
     e.preventDefault();
     sound.toggle();
+  } else if (e.code === 'Escape') {
+    skinModal.classList.remove('active');
+    fpsModal.classList.remove('active');
   }
 });
 
-// Cảm ứng / Chuột: Chạm bất kỳ đâu trên màn hình để bay (trừ nút âm thanh)
+// Chạm toàn màn hình để vỗ cánh
 window.addEventListener('pointerdown', e => {
-  if (e.target.closest('#soundBtn')) return;
+  if (e.target.closest('.top-bar') || e.target.closest('.modal-card')) return;
   e.preventDefault();
   flap();
 }, { passive: false });
 
-// Nút âm thanh
 const soundBtn = document.getElementById('soundBtn');
-soundBtn.addEventListener('pointerdown', e => {
-  e.stopPropagation();
-});
+soundBtn.addEventListener('pointerdown', e => e.stopPropagation());
 soundBtn.addEventListener('click', e => {
   e.stopPropagation();
   sound.toggle();
 });
 
+// Bắt đầu game
 reset();
-requestAnimationFrame(t => {
-  last = t;
-  loop(t);
-});
+requestAnimationFrame(gameLoop);
 
 })();
 </script>
