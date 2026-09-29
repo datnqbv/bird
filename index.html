@@ -492,51 +492,59 @@ canvas:focus-visible, .top-btn:focus-visible {
 'use strict';
 
 // ==========================================
-// 1. TẢI HÌNH ẢNH (SPRITES) & ÂM THANH (AUDIO)
+// 1. TẢI HÌNH ẢNH (SPRITES) & ÂM THANH (AUDIO) TỪ GITHUB
 // ==========================================
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/datnqbv/bird/main/';
+
 const SPRITE_SRCS = {
-  bgDay: 'sprites/background-day.png',
-  bgNight: 'sprites/background-night.png',
-  base: 'sprites/base.png',
-  pipeGreen: 'sprites/pipe-green.png',
-  pipeRed: 'sprites/pipe-red.png',
-  message: 'sprites/message.png',
-  gameover: 'sprites/gameover.png',
-  yellow_down: 'sprites/yellowbird-downflap.png',
-  yellow_mid: 'sprites/yellowbird-midflap.png',
-  yellow_up: 'sprites/yellowbird-upflap.png',
-  blue_down: 'sprites/bluebird-downflap.png',
-  blue_mid: 'sprites/bluebird-midflap.png',
-  blue_up: 'sprites/bluebird-upflap.png',
-  red_down: 'sprites/redbird-downflap.png',
-  red_mid: 'sprites/redbird-midflap.png',
-  red_up: 'sprites/redbird-upflap.png',
-  num0: 'sprites/0.png',
-  num1: 'sprites/1.png',
-  num2: 'sprites/2.png',
-  num3: 'sprites/3.png',
-  num4: 'sprites/4.png',
-  num5: 'sprites/5.png',
-  num6: 'sprites/6.png',
-  num7: 'sprites/7.png',
-  num8: 'sprites/8.png',
-  num9: 'sprites/9.png'
+  bgDay: GITHUB_RAW_BASE + 'sprites/background-day.png',
+  bgNight: GITHUB_RAW_BASE + 'sprites/background-night.png',
+  base: GITHUB_RAW_BASE + 'sprites/base.png',
+  pipeGreen: GITHUB_RAW_BASE + 'sprites/pipe-green.png',
+  pipeRed: GITHUB_RAW_BASE + 'sprites/pipe-red.png',
+  message: GITHUB_RAW_BASE + 'sprites/message.png',
+  gameover: GITHUB_RAW_BASE + 'sprites/gameover.png',
+  yellow_down: GITHUB_RAW_BASE + 'sprites/yellowbird-downflap.png',
+  yellow_mid: GITHUB_RAW_BASE + 'sprites/yellowbird-midflap.png',
+  yellow_up: GITHUB_RAW_BASE + 'sprites/yellowbird-upflap.png',
+  blue_down: GITHUB_RAW_BASE + 'sprites/bluebird-downflap.png',
+  blue_mid: GITHUB_RAW_BASE + 'sprites/bluebird-midflap.png',
+  blue_up: GITHUB_RAW_BASE + 'sprites/bluebird-upflap.png',
+  red_down: GITHUB_RAW_BASE + 'sprites/redbird-downflap.png',
+  red_mid: GITHUB_RAW_BASE + 'sprites/redbird-midflap.png',
+  red_up: GITHUB_RAW_BASE + 'sprites/redbird-upflap.png',
+  num0: GITHUB_RAW_BASE + 'sprites/0.png',
+  num1: GITHUB_RAW_BASE + 'sprites/1.png',
+  num2: GITHUB_RAW_BASE + 'sprites/2.png',
+  num3: GITHUB_RAW_BASE + 'sprites/3.png',
+  num4: GITHUB_RAW_BASE + 'sprites/4.png',
+  num5: GITHUB_RAW_BASE + 'sprites/5.png',
+  num6: GITHUB_RAW_BASE + 'sprites/6.png',
+  num7: GITHUB_RAW_BASE + 'sprites/7.png',
+  num8: GITHUB_RAW_BASE + 'sprites/8.png',
+  num9: GITHUB_RAW_BASE + 'sprites/9.png'
 };
 
 const sprites = {};
 Object.entries(SPRITE_SRCS).forEach(([key, src]) => {
   const img = new Image();
+  img.crossOrigin = 'anonymous';
   img.src = src;
+  img.onerror = () => {
+    // Dự phòng đường dẫn tương đối nếu kết nối mạng gián đoạn
+    const localSrc = src.replace(GITHUB_RAW_BASE, '');
+    if (img.src !== localSrc) img.src = localSrc;
+  };
   sprites[key] = img;
 });
 
-// Audio Pool để phát âm thanh không độ trễ, hỗ trợ chồng âm thanh
+// Audio Pool để phát âm thanh không độ trễ từ GitHub
 const AUDIO_SRCS = {
-  wing: 'audio/wing.wav',
-  point: 'audio/point.wav',
-  hit: 'audio/hit.wav',
-  die: 'audio/die.wav',
-  swoosh: 'audio/swoosh.wav'
+  wing: GITHUB_RAW_BASE + 'audio/wing.wav',
+  point: GITHUB_RAW_BASE + 'audio/point.wav',
+  hit: GITHUB_RAW_BASE + 'audio/hit.wav',
+  die: GITHUB_RAW_BASE + 'audio/die.wav',
+  swoosh: GITHUB_RAW_BASE + 'audio/swoosh.wav'
 };
 
 const audioPools = {};
@@ -548,6 +556,10 @@ Object.entries(AUDIO_SRCS).forEach(([name, src]) => {
   for (let i = 0; i < poolSize; i++) {
     const a = new Audio(src);
     a.preload = 'auto';
+    a.onerror = () => {
+      const localSrc = src.replace(GITHUB_RAW_BASE, '');
+      if (a.src !== localSrc) a.src = localSrc;
+    };
     audioPools[name].push(a);
   }
 });
