@@ -52,8 +52,10 @@ body {
   height: min(84vh, 620px);
   aspect-ratio: 360 / 560;
   max-width: 96vw;
+  contain: layout paint;
   will-change: transform;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 canvas {
   width: 100%;
@@ -63,7 +65,9 @@ canvas {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
   cursor: pointer;
   background-color: #38bdf8;
-  will-change: transform;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  transform: translate3d(0, 0, 0);
 }
 canvas:focus-visible, .top-btn:focus-visible {
   outline: 3px solid var(--accent);
@@ -287,9 +291,63 @@ canvas:focus-visible, .top-btn:focus-visible {
   font-weight: 600;
   color: #94a3b8;
 }
-.fps-btn:hover {
+/* Cài đặt cấu hình và FPS */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffd54a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.settings-grid {
+  display: grid;
+  gap: 8px;
+}
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.setting-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 10px 4px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+.setting-btn span {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+.setting-btn:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.4);
+}
+.setting-btn.active {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+  color: #ffd54a;
+}
+.setting-btn.active span {
+  color: #fde68a;
 }
 .fps-btn.active {
   background: rgba(34, 197, 94, 0.2);
@@ -297,7 +355,9 @@ canvas:focus-visible, .top-btn:focus-visible {
   box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
   color: #4ade80;
 }
-.fps-btn.active span { color: #86efac; }
+.fps-btn.active span {
+  color: #86efac;
+}
 
 .hint {
   font-size: 13px;
@@ -328,8 +388,8 @@ canvas:focus-visible, .top-btn:focus-visible {
       <button id="skinBtn" class="top-btn" title="Chọn ngoại hình chim">
         <span>🎨</span> Skin
       </button>
-      <button id="fpsBtn" class="top-btn" title="Cài đặt tốc độ khung hình">
-        <span>⚡</span> <span id="fpsLabel">60 FPS</span>
+      <button id="settingsBtn" class="top-btn" title="Cài đặt cấu hình và FPS">
+        <span>⚙️</span> Cài đặt
       </button>
     </div>
     <div class="top-right">
@@ -362,30 +422,58 @@ canvas:focus-visible, .top-btn:focus-visible {
     </div>
   </div>
 
-  <!-- Modal Cài đặt FPS -->
-  <div id="fpsModal" class="modal-overlay">
+  <!-- Modal Cài đặt Toàn Diện (Cấu hình & FPS) -->
+  <div id="settingsModal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title"><span>⚡</span> Tùy Chọn FPS</h3>
-        <button id="closeFpsModal" class="modal-close">&times;</button>
+        <h3 class="modal-title"><span>⚙️</span> Cài Đặt Game</h3>
+        <button id="closeSettingsModal" class="modal-close">&times;</button>
       </div>
-      <div class="fps-options">
-        <button class="fps-btn" data-fps="30">
-          30 FPS
-          <span>Tiết kiệm pin</span>
-        </button>
-        <button class="fps-btn" data-fps="60">
-          60 FPS
-          <span>Chuẩn mượt mà</span>
-        </button>
-        <button class="fps-btn" data-fps="120">
-          120 FPS
-          <span>Siêu mượt (120Hz)</span>
-        </button>
-        <button class="fps-btn" data-fps="0">
-          Tối Đa (Max)
-          <span>Tần số quét gốc</span>
-        </button>
+
+      <!-- Mục 1: Cấu hình đồ họa & Làm nét / Làm mờ -->
+      <div class="settings-section">
+        <div class="section-label">
+          <span>🖥️</span> Cấu hình & Độ nét:
+        </div>
+        <div class="settings-grid grid-3">
+          <button class="setting-btn quality-btn active" data-quality="high">
+            🌟 Cao
+            <span>Làm nét (HD)</span>
+          </button>
+          <button class="setting-btn quality-btn" data-quality="med">
+            ⚡ Vừa
+            <span>Cân bằng</span>
+          </button>
+          <button class="setting-btn quality-btn" data-quality="low">
+            🔋 Thấp
+            <span>Làm mờ (Nhẹ)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mục 2: Tốc độ khung hình (FPS) -->
+      <div class="settings-section">
+        <div class="section-label">
+          <span>⚡</span> Khung hình (FPS):
+        </div>
+        <div class="settings-grid grid-4">
+          <button class="setting-btn fps-btn" data-fps="30">
+            30
+            <span>Tiết kiệm</span>
+          </button>
+          <button class="setting-btn fps-btn active" data-fps="60">
+            60
+            <span>Chuẩn</span>
+          </button>
+          <button class="setting-btn fps-btn" data-fps="120">
+            120
+            <span>Mượt mà</span>
+          </button>
+          <button class="setting-btn fps-btn" data-fps="0">
+            Max
+            <span>Tối đa</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -646,23 +734,47 @@ try {
   if (savedFps !== null) targetFps = parseInt(savedFps, 10);
 } catch(e){}
 
-function updateFpsUI() {
-  const label = document.getElementById('fpsLabel');
-  if (label) {
-    label.textContent = targetFps === 0 ? 'Max FPS' : `${targetFps} FPS`;
-  }
+let graphicsQuality = 'high'; // 'high' (Làm nét HD), 'med' (Vừa), 'low' (Làm mờ/nhẹ máy)
+try {
+  const savedQ = localStorage.getItem('flappy-graphics');
+  if (savedQ && ['high', 'med', 'low'].includes(savedQ)) graphicsQuality = savedQ;
+} catch(e){}
+
+function updateSettingsUI() {
   document.querySelectorAll('.fps-btn').forEach(btn => {
     const f = parseInt(btn.dataset.fps, 10);
     btn.classList.toggle('active', f === targetFps);
   });
+  document.querySelectorAll('.quality-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.quality === graphicsQuality);
+  });
 }
-updateFpsUI();
 
 // Khởi tạo Canvas với context 2d desynchronized và tắt alpha để tăng tốc GPU
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d', { alpha: false, desynchronized: true });
 const W = 360, H = 560, GH = 72, GY = H - GH;
 const GRAV = 0.42, FLAP = -7.2, BASE_SPEED = 2.4, GAP = 146, PW = 56, SPACE = 190, BR = 13, BX = 90;
+
+let dpr = 1;
+function setupCanvasResolution() {
+  const nativeDpr = window.devicePixelRatio || 1;
+  if (graphicsQuality === 'high') {
+    dpr = Math.min(Math.max(nativeDpr, 1.8), 2.8);
+    cv.style.filter = 'none';
+  } else if (graphicsQuality === 'med') {
+    dpr = 1.35;
+    cv.style.filter = 'none';
+  } else {
+    // Cấu hình thấp: Giảm độ phân giải & làm mờ nhẹ để siêu nhẹ cho máy yếu
+    dpr = 0.75;
+    cv.style.filter = 'blur(1px)';
+  }
+  cv.width = Math.round(W * dpr);
+  cv.height = Math.round(H * dpr);
+  initCachedGradients();
+}
+window.addEventListener('resize', setupCanvasResolution);
 
 let state = 'ready'; // 'ready' | 'play' | 'dead'
 let bird, pipes, score = 0, best = 0;
@@ -671,12 +783,13 @@ let isNewBest = false;
 let shake = 0;
 let milestoneText = '';
 let milestoneTimer = 0;
+let tunnelWave = 0;
 let clouds = [];
 
 try { best = +localStorage.getItem('flappy-best') || 0; } catch(e){}
 
 // Pre-cache Gradients nền và ống (Tránh khởi tạo rác bộ nhớ mỗi frame)
-let cachedSkyGrad, cachedSunGrad, cachedNormalPipeGrad, cachedMovingPipeGrad;
+let cachedSkyGrad, cachedSunGrad, cachedNormalPipeGrad, cachedMovingPipeGrad, cachedTunnelPipeGrad, cachedDiagPipeGrad;
 function initCachedGradients() {
   cachedSkyGrad = ctx.createLinearGradient(0, 0, 0, GY);
   cachedSkyGrad.addColorStop(0, '#38bdf8');
@@ -699,8 +812,22 @@ function initCachedGradients() {
   cachedMovingPipeGrad.addColorStop(0.3, '#74cb57');
   cachedMovingPipeGrad.addColorStop(0.7, '#409433');
   cachedMovingPipeGrad.addColorStop(1, '#27621f');
+
+  // Gradient đường hầm Màn 40-49 (Cột liền nhau màu đồng bóng)
+  cachedTunnelPipeGrad = ctx.createLinearGradient(0, 0, PW, 0);
+  cachedTunnelPipeGrad.addColorStop(0, '#c2410c');
+  cachedTunnelPipeGrad.addColorStop(0.3, '#fb923c');
+  cachedTunnelPipeGrad.addColorStop(0.7, '#ea580c');
+  cachedTunnelPipeGrad.addColorStop(1, '#9a3412');
+
+  // Gradient ống di chuyển chéo Màn 50+ (Màu tím neon huyền bí)
+  cachedDiagPipeGrad = ctx.createLinearGradient(0, 0, PW, 0);
+  cachedDiagPipeGrad.addColorStop(0, '#6d28d9');
+  cachedDiagPipeGrad.addColorStop(0.3, '#a855f7');
+  cachedDiagPipeGrad.addColorStop(0.7, '#7e22ce');
+  cachedDiagPipeGrad.addColorStop(1, '#4c1d95');
 }
-initCachedGradients();
+setupCanvasResolution();
 
 // Khởi tạo mây
 for (let i = 0; i < 5; i++) {
@@ -718,10 +845,13 @@ function getSpeed() {
   return Math.min(4.3, BASE_SPEED + (score - 9) * 0.08);
 }
 
+// 5 Cấp độ màn chơi đầy thử thách
 function getLevel() {
-  if (score < 10) return 1;
-  if (score < 20) return 2;
-  return 3;
+  if (score < 10) return { num: 1, text: 'Màn 1', color: '#38bdf8' };
+  if (score < 20) return { num: 2, text: 'Màn 2 ⚡', color: '#f59e0b' };
+  if (score < 40) return { num: 3, text: 'Màn 3 ↕', color: '#10b981' };
+  if (score < 50) return { num: 4, text: 'Màn 4 🧱', color: '#ec4899' };
+  return { num: 5, text: 'Màn 5 ⤡', color: '#a855f7' };
 }
 
 function reset() {
@@ -741,25 +871,46 @@ function reset() {
   isNewBest = false;
   milestoneText = '';
   milestoneTimer = 0;
+  tunnelWave = 0;
 
   for (let i = 0; i < 3; i++) {
     addPipe(W + 70 + i * SPACE);
   }
 }
 
-function addPipe(x) {
-  const minTop = 60;
-  const maxTop = GY - GAP - 80;
-  const baseTop = minTop + Math.random() * (maxTop - minTop);
-  pipes.push({
-    x,
-    baseTop,
-    top: baseTop,
-    passed: false,
-    phase: Math.random() * Math.PI * 2,
-    moveSpeed: 0.038 + Math.random() * 0.016,
-    moveAmp: 34 + Math.random() * 12
-  });
+function addPipe(x, isTunnel = false) {
+  if (isTunnel) {
+    tunnelWave += 0.28;
+    const waveOffset = Math.sin(tunnelWave) * 36;
+    const top = Math.max(50, Math.min(GY - GAP - 50, (H / 2 - GAP / 2) + waveOffset));
+    pipes.push({
+      x,
+      baseTop: top,
+      top: top,
+      passed: false,
+      isTunnel: true,
+      isScoreSegment: (pipes.length % 3 === 0)
+    });
+  } else {
+    const minTop = 60;
+    const maxTop = GY - GAP - 80;
+    const baseTop = minTop + Math.random() * (maxTop - minTop);
+    const isDiag = score >= 50;
+    const isMoving = score >= 20 && score < 40;
+    pipes.push({
+      x,
+      baseTop,
+      top: baseTop,
+      passed: false,
+      isTunnel: false,
+      isMovingPipe: isMoving,
+      isDiagonal: isDiag,
+      diagSlope: (Math.random() > 0.5 ? 1 : -1) * (0.85 + Math.random() * 0.4),
+      phase: Math.random() * Math.PI * 2,
+      moveSpeed: 0.038 + Math.random() * 0.016,
+      moveAmp: 34 + Math.random() * 12
+    });
+  }
 }
 
 // ==========================================
@@ -855,26 +1006,52 @@ function update(dt) {
     for (const p of pipes) {
       p.x -= currentSpeed * dt;
 
-      // Từ màn 20 trở đi: Ống di chuyển lên xuống
-      if (score >= 20) {
+      // MÀN 20 - 39: Ống di chuyển lên xuống thẳng đứng
+      if (score >= 20 && score < 40 && !p.isTunnel) {
         const offset = Math.sin(tick * p.moveSpeed + p.phase) * p.moveAmp;
         p.top = Math.max(45, Math.min(GY - GAP - 45, p.baseTop + offset));
       }
-
-      if (!p.passed && p.x + PW < BX - BR) {
-        p.passed = true;
-        score++;
-        sound.playScore();
-
-        if (score === 10) {
-          milestoneText = '⚡ MÀN 10: TỐC ĐỘ TĂNG DẦN!';
-          milestoneTimer = 110;
-        } else if (score === 20) {
-          milestoneText = '⚠️ MÀN 20: ỐNG DI CHUYỂN!';
-          milestoneTimer = 130;
+      // MÀN 40 - 49: Cột liền nhau thành đường hầm (độ cao sóng lượn đã tính toán liên tục khi tạo)
+      else if (p.isTunnel) {
+        // Cố định 1 hàng duy nhất cho người dùng bay qua
+      }
+      // MÀN 50 TRỞ ĐI: Cột di chuyển theo phương chéo (vừa ngang vừa dọc)
+      else if (score >= 50 || p.isDiagonal) {
+        p.top += (p.diagSlope || 1) * 1.6 * dt;
+        if (p.top > GY - GAP - 45) {
+          p.top = GY - GAP - 45;
+          p.diagSlope = -Math.abs(p.diagSlope || 1);
+        } else if (p.top < 45) {
+          p.top = 45;
+          p.diagSlope = Math.abs(p.diagSlope || 1);
         }
       }
 
+      // Tính điểm khi vượt qua
+      if (!p.passed && p.x + PW < BX - BR) {
+        p.passed = true;
+        // Với đường hầm Màn 40-49, tính điểm theo từng phân đoạn tương đương 1 cột bình thường
+        if (!p.isTunnel || p.isScoreSegment) {
+          score++;
+          sound.playScore();
+
+          if (score === 10) {
+            milestoneText = '⚡ MÀN 10: TỐC ĐỘ TĂNG DẦN!';
+            milestoneTimer = 110;
+          } else if (score === 20) {
+            milestoneText = '↕ MÀN 20: ỐNG DI CHUYỂN DỌC!';
+            milestoneTimer = 120;
+          } else if (score === 40) {
+            milestoneText = '🧱 MÀN 40: ĐƯỜNG HẦM CỘT LIỀN NHAU!';
+            milestoneTimer = 140;
+          } else if (score === 50) {
+            milestoneText = '⤡ MÀN 50: ỐNG DI CHUYỂN PHƯƠNG CHÉO!';
+            milestoneTimer = 140;
+          }
+        }
+      }
+
+      // Kiểm tra va chạm ống
       if (BX + BR - 4 > p.x && BX - BR + 4 < p.x + PW) {
         if (bird.y - BR + 4 < p.top || bird.y + BR - 4 > p.top + GAP) {
           die();
@@ -882,9 +1059,13 @@ function update(dt) {
       }
     }
 
+    // Tái tạo ống mới: Màn 40-49 cột liền nhau (spacing = PW), các màn khác cách nhau SPACE
     if (pipes.length > 0 && pipes[0].x + PW < 0) {
       pipes.shift();
-      addPipe(pipes[pipes.length - 1].x + SPACE);
+      const lastX = pipes[pipes.length - 1].x;
+      const isTunnel = score >= 40 && score < 50;
+      const spacing = isTunnel ? PW : SPACE;
+      addPipe(lastX + spacing, isTunnel);
     }
 
     if (bird.y + BR > GY) {
@@ -924,42 +1105,69 @@ function drawPipe(p) {
   const x = p.x | 0;
   const top = p.top | 0;
   const b = top + GAP;
-  const isMovingPipe = score >= 20;
 
   ctx.save();
   ctx.translate(x, 0);
 
-  ctx.fillStyle = isMovingPipe ? cachedMovingPipeGrad : cachedNormalPipeGrad;
-  ctx.strokeStyle = '#1d4818';
-  ctx.lineWidth = 3;
+  if (p.isTunnel) {
+    // MÀN 4: Cột liền nhau tạo đường hầm liên tục (màu đồng bóng công nghệ)
+    ctx.fillStyle = cachedTunnelPipeGrad;
+    ctx.fillRect(0, 0, PW + 1, top);
+    ctx.fillRect(0, b, PW + 1, GY - b);
 
-  // 1. Ống trên
-  ctx.fillRect(0, 0, PW, top);
-  ctx.strokeRect(0, -3, PW, top + 3);
-  ctx.fillRect(-5, top - 24, PW + 10, 24);
-  ctx.strokeRect(-5, top - 24, PW + 10, 24);
+    // Mép đường hầm phát quang màu hổ phách
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(0, top - 4, PW + 1, 4);
+    ctx.fillRect(0, b, PW + 1, 4);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillRect(6, 0, 6, top - 24);
-  ctx.fillRect(1, top - 24, 6, 24);
+    // Đường vân kim loại tinh tế
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.fillRect(8, 0, 4, top - 4);
+    ctx.fillRect(8, b + 4, 4, GY - b - 4);
+  } else {
+    // Ống nước thông thường, Màn 20-39 (dọc) hoặc Màn 50+ (chéo)
+    let fillGrad = cachedNormalPipeGrad;
+    if (p.isDiagonal) {
+      fillGrad = cachedDiagPipeGrad;
+    } else if (p.isMovingPipe) {
+      fillGrad = cachedMovingPipeGrad;
+    }
 
-  // 2. Ống dưới
-  ctx.fillStyle = isMovingPipe ? cachedMovingPipeGrad : cachedNormalPipeGrad;
-  ctx.fillRect(0, b, PW, GY - b);
-  ctx.strokeRect(0, b, PW, GY - b);
-  ctx.fillRect(-5, b, PW + 10, 24);
-  ctx.strokeRect(-5, b, PW + 10, 24);
+    ctx.fillStyle = fillGrad;
+    ctx.fillRect(0, 0, PW, top);
+    ctx.fillRect(-5, top - 24, PW + 10, 24);
+    ctx.fillRect(0, b, PW, GY - b);
+    ctx.fillRect(-5, b, PW + 10, 24);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillRect(6, b + 24, 6, GY - b - 24);
-  ctx.fillRect(1, b, 6, 24);
+    ctx.strokeStyle = p.isDiagonal ? '#4c1d95' : '#1d4818';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(0, -3, PW, top + 3);
+    ctx.strokeRect(-5, top - 24, PW + 10, 24);
+    ctx.strokeRect(0, b, PW, GY - b);
+    ctx.strokeRect(-5, b, PW + 10, 24);
 
-  if (isMovingPipe) {
-    ctx.fillStyle = '#fef08a';
-    ctx.font = '700 12px "Baloo 2", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('↕', PW / 2, top - 8);
-    ctx.fillText('↕', PW / 2, b + 16);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.fillRect(6, 0, 6, top - 24);
+    ctx.fillRect(1, top - 24, 6, 24);
+    ctx.fillRect(6, b + 24, 6, GY - b - 24);
+    ctx.fillRect(1, b, 6, 24);
+
+    if (p.isDiagonal) {
+      // Mũi tên chéo cảnh báo Màn 50+
+      ctx.fillStyle = '#fde047';
+      ctx.font = '700 13px "Baloo 2", sans-serif';
+      ctx.textAlign = 'center';
+      const arrowIcon = (p.diagSlope || 1) > 0 ? '↘' : '↗';
+      ctx.fillText(arrowIcon, PW / 2, top - 8);
+      ctx.fillText(arrowIcon, PW / 2, b + 17);
+    } else if (p.isMovingPipe) {
+      // Mũi tên dọc Màn 20-39
+      ctx.fillStyle = '#fef08a';
+      ctx.font = '700 12px "Baloo 2", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('↕', PW / 2, top - 8);
+      ctx.fillText('↕', PW / 2, b + 16);
+    }
   }
   ctx.restore();
 }
@@ -1104,6 +1312,7 @@ function renderText(txt, x, y, size, color, strokeColor = '#1d2b3a') {
 
 function draw() {
   ctx.save();
+  ctx.scale(dpr, dpr); // Tăng cường độ nét siêu phân giải Retina High-DPI
 
   if (shake > 0) {
     const rx = (Math.random() - 0.5) * shake;
@@ -1141,18 +1350,18 @@ function draw() {
   ctx.fillStyle = '#e2c589';
   ctx.fillRect(0, GY, W, GH);
 
-  // Dải cỏ
+  // Dải cỏ (Gom toàn bộ răng cỏ vào 1 lệnh fill duy nhất để tối ưu GPU)
   ctx.fillStyle = '#4ade80';
   ctx.fillRect(0, GY, W, 15);
   ctx.fillStyle = '#22c55e';
   const gX = groundX | 0;
+  ctx.beginPath();
   for (let x = gX - 24; x < W + 24; x += 24) {
-    ctx.beginPath();
     ctx.moveTo(x, GY);
     ctx.lineTo(x + 12, GY + 15);
     ctx.lineTo(x + 24, GY);
-    ctx.fill();
   }
+  ctx.fill();
   ctx.fillStyle = '#b79753';
   ctx.fillRect(0, GY + 15, W, 3);
 
@@ -1165,17 +1374,14 @@ function draw() {
     renderText(score, W / 2, 80, 52, '#ffffff');
 
     const lvl = getLevel();
-    const lvlText = lvl === 1 ? 'Màn 1' : (lvl === 2 ? 'Màn 2 ⚡' : 'Màn 3 🌀');
-    const lvlColor = lvl === 1 ? '#38bdf8' : (lvl === 2 ? '#f59e0b' : '#ef4444');
-
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
     ctx.beginPath();
-    ctx.roundRect(14, 58, 88, 26, 13);
+    ctx.roundRect(14, 58, 96, 26, 13);
     ctx.fill();
     ctx.font = '800 13px "Baloo 2", sans-serif';
-    ctx.fillStyle = lvlColor;
+    ctx.fillStyle = lvl.color;
     ctx.textAlign = 'center';
-    ctx.fillText(lvlText, 58, 76);
+    ctx.fillText(lvl.text, 62, 76);
   }
 
   // Thông báo cột mốc màn chơi
@@ -1281,6 +1487,7 @@ function draw() {
 // 6. GAME LOOP CÂN BẰNG FPS & HIỆU NĂNG
 // ==========================================
 let lastTime = performance.now();
+let prevRenderTime = performance.now();
 let lastFpsUpdate = performance.now();
 let frameCount = 0;
 let realFps = 60;
@@ -1289,17 +1496,20 @@ const liveFpsEl = document.getElementById('liveFps');
 function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 
-  // Điều phối giới hạn FPS
+  // Điều phối giới hạn FPS với frame pacing chuẩn xác (chống giật micro-stutter)
   if (targetFps > 0) {
     const minInterval = 1000 / targetFps;
     const elapsed = now - lastTime;
-    if (elapsed < minInterval - 0.7) {
-      return; // Bỏ qua render để khớp đúng tốc độ FPS mong muốn
+    if (elapsed < minInterval - 0.5) {
+      return;
     }
+    lastTime = now - (elapsed % minInterval);
+  } else {
+    lastTime = now;
   }
 
-  const dt = Math.min(2.5, (now - lastTime) / 16.667 || 1);
-  lastTime = now;
+  const dt = Math.min(2.5, (now - prevRenderTime) / 16.667 || 1);
+  prevRenderTime = now;
 
   // Tính toán FPS thực tế
   frameCount++;
@@ -1357,27 +1567,32 @@ function renderSkinsModal() {
 }
 renderSkinsModal();
 
+const settingsModal = document.getElementById('settingsModal');
+const settingsBtn = document.getElementById('settingsBtn');
+const closeSettingsModal = document.getElementById('closeSettingsModal');
+
 // Mở modal Skin
 skinBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   renderSkinsModal();
   skinModal.classList.add('active');
-  fpsModal.classList.remove('active');
+  settingsModal.classList.remove('active');
 });
 closeSkinModal.addEventListener('click', (e) => {
   e.stopPropagation();
   skinModal.classList.remove('active');
 });
 
-// Mở modal FPS
-fpsBtn.addEventListener('click', (e) => {
+// Mở modal Cài Đặt (Cấu hình & FPS)
+settingsBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  fpsModal.classList.add('active');
+  updateSettingsUI();
+  settingsModal.classList.add('active');
   skinModal.classList.remove('active');
 });
-closeFpsModal.addEventListener('click', (e) => {
+closeSettingsModal.addEventListener('click', (e) => {
   e.stopPropagation();
-  fpsModal.classList.remove('active');
+  settingsModal.classList.remove('active');
 });
 
 // Chọn mức FPS
@@ -1386,13 +1601,27 @@ document.querySelectorAll('.fps-btn').forEach(btn => {
     e.stopPropagation();
     targetFps = parseInt(btn.dataset.fps, 10);
     try { localStorage.setItem('flappy-fps', targetFps); } catch(err){}
-    updateFpsUI();
-    setTimeout(() => { fpsModal.classList.remove('active'); }, 150);
+    updateSettingsUI();
+    setTimeout(() => { settingsModal.classList.remove('active'); }, 150);
   });
 });
 
+// Chọn cấu hình đồ họa (Cao: Làm nét HD | Vừa: Cân bằng | Thấp: Làm mờ nhẹ)
+document.querySelectorAll('.quality-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    graphicsQuality = btn.dataset.quality;
+    try { localStorage.setItem('flappy-graphics', graphicsQuality); } catch(err){}
+    updateSettingsUI();
+    setupCanvasResolution();
+    setTimeout(() => { settingsModal.classList.remove('active'); }, 150);
+  });
+});
+
+updateSettingsUI();
+
 // Đóng modal khi bấm ra ngoài card
-[skinModal, fpsModal].forEach(modal => {
+[skinModal, settingsModal].forEach(modal => {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.classList.remove('active');
   });
@@ -1411,7 +1640,7 @@ window.addEventListener('keydown', e => {
     sound.toggle();
   } else if (e.code === 'Escape') {
     skinModal.classList.remove('active');
-    fpsModal.classList.remove('active');
+    settingsModal.classList.remove('active');
   }
 });
 
